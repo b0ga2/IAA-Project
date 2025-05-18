@@ -12,4 +12,4 @@ if __name__ == '__main__':
 
     #Sends the name and nationality
     r = requests.post("http://127.0.0.1:1337/register_holder", json={'full_name': 'TÓS',"nationality":"Out of this World", "holder_id": holder_id, "health_code": "teste"})
-    #print(r.json())
+    print(r.json())

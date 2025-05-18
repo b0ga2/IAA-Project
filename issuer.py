@@ -4,9 +4,16 @@ import requests
 
 import random
 import sys
+import json, base64
 
+from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
+from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
+from cryptography.hazmat.primitives import hashes
 
 from datetime import datetime, timedelta
 
@@ -113,7 +120,53 @@ def get_vc():
         "did_identifier": did_identifier,
     })
 
-    return did_identifier
+    # load issuer private key from file
+    with open("issuer-private.pem", "rb") as key_file:
+        try:
+            issuer_private_key = load_pem_private_key(
+                key_file.read(),
+                password=None,
+                backend=default_backend()
+            )
+        except:
+            print("Error reading private key")
+            exit(1)
+
+    # load issuer private key from file
+    with open("issuer-public.pub", "rb") as key_file:
+        issuer_public_key = load_pem_public_key(key_file.read())
+
+    # Returns the signed VCs to the holder
+    vc_json = {
+        "original_national_base": original_national_base,
+        "rank": rank,
+        "division": division,
+        "health_code": user_data["health_code"],
+        "nationality": user_data["nationality"],
+        "full_name": user_data["full_name"],
+        "security_clearance_level": security_clearance_level,
+        "initial_date": initial_date.strftime('%Y/%d/%m'),
+        "final_date": final_date,
+        "issuer_id": issuer_id,
+        "did_identifier": did_identifier,
+    }
+
+    # hash the dcc_min
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(json.dumps(vc_json).encode('utf-8'))
+    hashed_vc = digest.finalize()
+
+    # sign the dcc_min
+    signature = issuer_private_key.sign(
+        data=hashed_vc,
+        padding=padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        algorithm=Prehashed(hashes.SHA256())
+    )
+
+    return {"vc_json":vc_json,"signature":base64.b64encode(signature).decode('utf-8')}
 
 if __name__ == '__main__':
 
