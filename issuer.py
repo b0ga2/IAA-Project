@@ -12,7 +12,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import dsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
-
 from cryptography.hazmat.primitives import hashes
 
 from datetime import datetime, timedelta
@@ -75,7 +74,7 @@ def gen_key_pair_holder():
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode("utf-8")
 
-    return (private_pem_low_loa, public_pem_low_loa, private_pem_substantial_loa, public_pem_substantial_loa, holder_pin)
+    return (private_pem_low_loa, public_pem_low_loa, private_pem_substantial_loa, public_pem_substantial_loa, holder_pin.decode("utf-8"))
 
 @app.route("/register_holder", methods=["POST"]) 
 def get_vc():
@@ -149,6 +148,11 @@ def get_vc():
         "final_date": final_date,
         "issuer_id": issuer_id,
         "did_identifier": did_identifier,
+        "private_pem_low_loa": private_pem_low_loa, 
+        "public_pem_low_loa": public_pem_low_loa, 
+        "private_pem_substantial_loa": private_pem_substantial_loa, 
+        "public_pem_substantial_loa": public_pem_substantial_loa, 
+        "holder_pin": holder_pin,
     }
 
     # hash the dcc_min

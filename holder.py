@@ -1,4 +1,4 @@
-import sqlite3, requests, sys
+import sqlite3, requests, sys, json
 
 #TODO: Do registation in holder and issuer
 
@@ -12,4 +12,10 @@ if __name__ == '__main__':
 
     #Sends the name and nationality
     r = requests.post("http://127.0.0.1:1337/register_holder", json={'full_name': 'TÓS',"nationality":"Out of this World", "holder_id": holder_id, "health_code": "teste"})
-    print(r.json())
+    
+    vc = r.json()
+    print("Your pin is " ,vc["vc_json"]["holder_pin"])
+    vc["vc_json"].pop("holder_pin", None)
+
+    with open("vc.json", "w", encoding="utf-8") as f:
+        json.dump(vc, f, indent=4, ensure_ascii=False)
