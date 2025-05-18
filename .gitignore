@@ -1,5 +1,6 @@
 __pycache__/
 *.pem
-*.pem
+*.pub
 *.db
 *.json
+venv/
