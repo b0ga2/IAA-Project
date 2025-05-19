@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-
 # Arrays with 10 sample values each
 original_national_base_list = [
     "NAT-001", "NAT-002", "NAT-003", "NAT-004", "NAT-005",
@@ -40,9 +39,7 @@ security_clearance_level_list = [
     "NATO Secret", "SCI", "Codeword", "Cosmic Top Secret", "Eyes Only"
 ]
 
-
 def gen_key_pair_holder():
-
     #generate low LoA key pair
     private_key_low_loa = dsa.generate_private_key(key_size=2048)
     public_key_low_loa = private_key_low_loa.public_key()
@@ -77,7 +74,7 @@ def gen_key_pair_holder():
     return (private_pem_low_loa, public_pem_low_loa, private_pem_substantial_loa, public_pem_substantial_loa, holder_pin.decode("utf-8"))
 
 @app.route("/register_holder", methods=["POST"]) 
-def get_vc():
+def register_holder():
     user_data = request.get_json()
 
     #Generate key pair and PIN
@@ -89,13 +86,11 @@ def get_vc():
 
     #Sends the key pair to the blockchain and gets the DID identifier
     r = requests.get("http://127.0.0.1:3173/register_did", 
-                      json={"public_pem_low_loa": public_pem_low_loa,
-                            "public_pem_substantial_loa": public_pem_substantial_loa})
-    
+                      json={"public_pem_low_loa": public_pem_low_loa, "public_pem_substantial_loa": public_pem_substantial_loa})
+
     did_identifier = r.json()["did_identifier"]
 
-
-    #Sends full data to the wallet   
+    #Sends full data to the wallet
     original_national_base = random.choice(original_national_base_list)
     rank = random.choice(rank_list)
     division = random.choice(division_list)
@@ -170,14 +165,12 @@ def get_vc():
         algorithm=Prehashed(hashes.SHA256())
     )
 
-    return {"vc_json":vc_json,"signature":base64.b64encode(signature).decode('utf-8')}
+    return {"vc_json": vc_json,"signature": base64.b64encode(signature).decode('utf-8')}
 
 if __name__ == '__main__':
-
     if len(sys.argv) < 2:
         print(f"Wrong arguments!\n\tUsage: {sys.argv[0]} <holder id>")
         exit(1)
 
     issuer_id = sys.argv[1]
-
     app.run(debug=True, port=1337)

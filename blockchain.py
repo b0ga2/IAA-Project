@@ -2,9 +2,7 @@ from flask import Flask
 from flask import request
 import requests
 
-import sqlite3
-import random
-import string
+import sqlite3, random, string
 
 def generate_random_did(length=64):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -31,16 +29,34 @@ def register_did():
     did_identifier = generate_random_did()
 
     # Insert the record
-    cursor.execute("""
-    INSERT INTO did_document (public_key_low_loa, public_key_susbtantial_loa, did_identifier)
-    VALUES (?, ?, ?);
-    """, (user_data["public_pem_low_loa"], user_data["public_pem_substantial_loa"], did_identifier))
+    cursor.execute("INSERT INTO did_document (public_key_low_loa, public_key_susbtantial_loa, did_identifier) VALUES (?, ?, ?);",
+        (user_data["public_pem_low_loa"], user_data["public_pem_substantial_loa"], did_identifier))
 
     # Commit and close
     conn.commit()
     conn.close()
 
-    return {"did_identifier":did_identifier}
+    return {"did_identifier": did_identifier}
+
+@app.get("/resolve_did") 
+def resolve_did():
+    user_data = request.get_json()
+
+    # Connect to the database
+    conn = sqlite3.connect("blockchain.db")
+    cursor = conn.cursor()
+
+    # Resolve the DID identifier
+    if user_data["loa"] == "low":
+        public_key = cursor.execute("SELECT public_key_low_loa FROM did_document WHERE did_identifier=?", (user_data["did_identifier"],)).fetchone()[0]
+    else:
+        public_key = cursor.execute("SELECT public_key_susbtantial_loa FROM did_document WHERE did_identifier=?", (user_data["did_identifier"],)).fetchone()[0]
+
+    # Commit and close
+    conn.commit()
+    conn.close()
+
+    return {"public_key": public_key}
 
 if __name__ == '__main__':
     create_db()

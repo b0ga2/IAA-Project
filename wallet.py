@@ -1,9 +1,7 @@
 from flask import Flask
 from flask import request
 
-import sqlite3
-
-import datetime
+import sqlite3, datetime
 
 app = Flask(__name__)
 
@@ -13,10 +11,6 @@ def create_db():
         conn.executescript(f.read())
     conn.commit()
     conn.close()
-
-@app.route("/get_vc")
-def get_vc():
-    return {'a': 0}
 
 @app.route("/register_vc", methods=["POST"])
 def register_vc():
@@ -54,5 +48,3 @@ def register_vc():
 if __name__ == '__main__':
     create_db()
     app.run(debug=True, port=7331)
-    
-    
