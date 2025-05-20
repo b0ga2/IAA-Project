@@ -9,7 +9,7 @@ import json, base64
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric import dsa
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
@@ -41,7 +41,7 @@ security_clearance_level_list = [
 
 def gen_key_pair_holder():
     #generate low LoA key pair
-    private_key_low_loa = dsa.generate_private_key(key_size=2048)
+    private_key_low_loa = rsa.generate_private_key(public_exponent=65537,key_size=2048)
     public_key_low_loa = private_key_low_loa.public_key()
 
     #serialize key pair
@@ -56,7 +56,7 @@ def gen_key_pair_holder():
     ).decode("utf-8")
 
     #generate substantial LoA key pair
-    private_key_substantial_loa = dsa.generate_private_key(key_size=2048)
+    private_key_substantial_loa = rsa.generate_private_key(public_exponent=65537,key_size=2048)
     public_key_substantial_loa = private_key_substantial_loa.public_key()
 
     #serialize substantial LoA key pair with random 6 digit PIN

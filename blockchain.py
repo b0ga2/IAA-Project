@@ -4,6 +4,8 @@ import requests
 
 import sqlite3, random, string
 
+#TODO: Correct the db in the blockchain when a new user is added
+
 def generate_random_did(length=64):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
