@@ -1,10 +1,7 @@
-from flask import Flask
-from flask import request
+from flask import Flask, request
 import requests
 
-import random
-import sys
-import json, base64
+import random, sys, json, base64
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
@@ -169,7 +166,7 @@ def register_holder():
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print(f"Wrong arguments!\n\tUsage: {sys.argv[0]} <holder id>")
+        print(f"Wrong arguments!\n\tUsage: {sys.argv[0]} <issuer id>")
         exit(1)
 
     issuer_id = sys.argv[1]

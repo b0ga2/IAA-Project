@@ -39,7 +39,6 @@ if __name__ == '__main__':
     digest.update(challenge.encode('utf-8'))
     hashed_challenge = digest.finalize()
 
-
     #Substantial level means the PIN is required
     if LoA == "substantial":
         #Obtains the PIN

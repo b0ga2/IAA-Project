@@ -1,6 +1,4 @@
-from flask import Flask
-from flask import request
-
+from flask import Flask, request
 import sqlite3, datetime
 
 app = Flask(__name__)
@@ -41,8 +39,6 @@ def register_vc():
     conn.close()
 
     print(user_data)
-
-
     return {'a': 0}
 
 if __name__ == '__main__':

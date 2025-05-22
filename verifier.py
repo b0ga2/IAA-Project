@@ -7,7 +7,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 import base64
 
-
 app = Flask(__name__)
 
 challenges = []
@@ -48,9 +47,9 @@ def validate_challenge():
             signature,
             hashed_challenge,
             padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH,
-                ),
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH,
+            ),
             Prehashed(hashes.SHA256())
         )
 
@@ -60,7 +59,6 @@ def validate_challenge():
         print(inst)
         print(f"Signature is invalid.")
         return {"valid": "no"}     
-        
 
 if __name__ == '__main__':
     app.run(debug=True, port=3317)
