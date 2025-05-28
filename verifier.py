@@ -11,6 +11,8 @@ app = Flask(__name__)
 
 challenges = []
 
+# TODO: do revocation lists
+
 @app.route("/auth_req", methods=["POST"])
 def auth_req():
     user_data = request.get_json()
@@ -24,22 +26,26 @@ def auth_req():
 
 @app.route("/validate_challenge", methods=["POST"]) 
 def validate_challenge():
+    vc = request.get_json()["vc"]
     signature = bytes(request.get_json()["signature"])
-    did_identifier = request.get_json()["did_identifier"]
+    did_identifier = vc["vc_json"]["did_identifier"]
+
+    # check if the vc signature or date is invalid
+    r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})
+    if r.json()["valid"] == "no":
+        return {"valid": "no"}
 
     for challenge in challenges:
         if did_identifier == challenge[0]:
             original_chall = challenge[1]
-            holder_pub_key = challenge[2]
+            original_holder_pub_key = challenge[2]
 
-    holder_pub_key = load_pem_public_key(holder_pub_key.encode("utf-8"))
+    holder_pub_key = load_pem_public_key(original_holder_pub_key.encode("utf-8"))
 
-    #Hash of the challenge
+    # Hash of the challenge
     digest = hashes.Hash(hashes.SHA256())
     digest.update(original_chall.encode('utf-8'))
     hashed_challenge = digest.finalize()
-
-    print(hashed_challenge)
 
     # check the attribute signature
     try:
@@ -52,13 +58,13 @@ def validate_challenge():
             ),
             Prehashed(hashes.SHA256())
         )
-
-        print(f"Signature is valid.")
-        return {"valid": "yes"}      
     except Exception as inst:
         print(inst)
         print(f"Signature is invalid.")
-        return {"valid": "no"}     
+        return {"valid": "no"}
+
+    challenges.remove((did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8')))
+    return {"valid": "yes"}
 
 if __name__ == '__main__':
     app.run(debug=True, port=3317)

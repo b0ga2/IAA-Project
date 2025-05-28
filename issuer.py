@@ -1,3 +1,4 @@
+from datetime import datetime, date
 from flask import Flask, request
 import requests
 
@@ -123,10 +124,6 @@ def register_holder():
             print("Error reading private key")
             exit(1)
 
-    # load issuer private key from file
-    with open("issuer-public.pub", "rb") as key_file:
-        issuer_public_key = load_pem_public_key(key_file.read())
-
     # Returns the signed VCs to the holder
     vc_json = {
         "original_national_base": original_national_base,
@@ -136,23 +133,22 @@ def register_holder():
         "nationality": user_data["nationality"],
         "full_name": user_data["full_name"],
         "security_clearance_level": security_clearance_level,
-        "initial_date": initial_date.strftime('%Y/%d/%m'),
-        "final_date": final_date,
+        "initial_date": str(initial_date.strftime('%Y/%d/%m')),
+        "final_date": str(final_date),
         "issuer_id": issuer_id,
         "did_identifier": did_identifier,
         "private_pem_low_loa": private_pem_low_loa, 
         "public_pem_low_loa": public_pem_low_loa, 
         "private_pem_substantial_loa": private_pem_substantial_loa, 
-        "public_pem_substantial_loa": public_pem_substantial_loa, 
-        "holder_pin": holder_pin,
+        "public_pem_substantial_loa": public_pem_substantial_loa,
     }
 
-    # hash the dcc_min
+    # hash the vc_json
     digest = hashes.Hash(hashes.SHA256())
-    digest.update(json.dumps(vc_json).encode('utf-8'))
+    digest.update(json.dumps(vc_json, sort_keys=True).encode('utf-8'))
     hashed_vc = digest.finalize()
 
-    # sign the dcc_min
+    # sign the vc_json
     signature = issuer_private_key.sign(
         data=hashed_vc,
         padding=padding.PSS(
@@ -162,7 +158,45 @@ def register_holder():
         algorithm=Prehashed(hashes.SHA256())
     )
 
-    return {"vc_json": vc_json,"signature": base64.b64encode(signature).decode('utf-8')}
+    return {"vc_json": vc_json, "holder_pin": holder_pin, "signature": base64.b64encode(signature).decode('utf-8')}
+
+@app.post("/check_vc_validity")
+def check_vc_valifity():
+    vc = request.get_json()["vc"]["vc_json"]
+
+    with open("issuer-public.pub", "rb") as f:
+        issuer_pub_key = load_pem_public_key(f.read())
+
+    # Hash of the vc json
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(json.dumps(vc, sort_keys=True).encode('utf-8'))
+    hashed_vc = digest.finalize()
+
+    # check the signature
+    try:
+        issuer_pub_key.verify(
+            base64.b64decode(request.get_json()["vc"]["signature"]),
+            hashed_vc,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH,
+            ),
+            Prehashed(hashes.SHA256())
+        )
+    except Exception as inst:
+        print(inst)
+        print(f"Signature is invalid.")
+        return {"valid": "no"}
+ 
+    # check the date validity
+    today = date.today()
+    initial_date = datetime.strptime(vc["initial_date"], "%Y/%d/%m").date()
+    final_date = datetime.strptime(vc["final_date"], "%Y/%d/%m").date()
+
+    if initial_date > today or final_date < today:
+        return {"valid": "no"}
+
+    return {"valid": "yes"}
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
