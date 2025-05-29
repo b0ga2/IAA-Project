@@ -38,36 +38,43 @@ if __name__ == '__main__':
     digest.update(challenge.encode('utf-8'))
     hashed_challenge = digest.finalize()
 
-    # Substantial level means the PIN is required
-    if LoA == "substantial":
-        # Obtains the PIN
-        pin = input("Enter your PIN: ")
+    while True:
+        # Substantial level means the PIN is required
+        try:
+            if LoA == "substantial":
+                # Obtains the PIN
+                pin = input("Enter your PIN: ")
 
-        holder_private_key = load_pem_private_key(
-            vc["vc_json"]["private_pem_substantial_loa"].encode("utf-8"),
-            password=pin.encode('utf-8'),
-            backend=default_backend()
-        )
-    # Low means only presenting the card is enough
-    elif LoA == "low":
-        holder_private_key = load_pem_private_key(
-            vc["vc_json"]["private_pem_low_loa"].encode("utf-8"),
-            password=None,
-            backend=default_backend()
-        )
+                holder_private_key = load_pem_private_key(
+                    vc["vc_json"]["private_pem_substantial_loa"].encode("utf-8"),
+                    password=pin.encode('utf-8'),
+                    backend=default_backend()
+                )
+            # Low means only presenting the card is enough
+            elif LoA == "low":
+                holder_private_key = load_pem_private_key(
+                    vc["vc_json"]["private_pem_low_loa"].encode("utf-8"),
+                    password=None,
+                    backend=default_backend()
+                )
 
-    # Encrypt the hash of the challenge
-    signature = holder_private_key.sign(
-        data=hashed_challenge,
-        padding=padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        algorithm=Prehashed(hashes.SHA256())
-    )
+            # Encrypt the hash of the challenge
+            signature = holder_private_key.sign(
+                data=hashed_challenge,
+                padding=padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                algorithm=Prehashed(hashes.SHA256())
+            )
 
-    signature = [x for x in signature]
+            signature = [x for x in signature]
+        except:
+            signature = []
 
-    # Send signature and holder_id to interface
-    r = requests.post("http://127.0.0.1:1733/send_challenge_to_verifier", json={"vc": vc, "signature": signature})
-    print(r.json())
+        # Send signature and holder_id to interface
+        r = requests.post("http://127.0.0.1:1733/send_challenge_to_verifier", json={"vc": vc, "signature": signature})
+        print(r.json())
+
+        if LoA == "low" or r.json()["valid"] == "yes" or ("reason" in r.json() and r.json()["reason"] == "too many tries"):
+            break

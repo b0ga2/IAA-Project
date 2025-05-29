@@ -40,7 +40,7 @@ def register_did():
 
     return {"did_identifier": did_identifier}
 
-@app.get("/resolve_did") 
+@app.get("/resolve_did")
 def resolve_did():
     user_data = request.get_json()
 
@@ -59,6 +59,23 @@ def resolve_did():
     conn.close()
 
     return {"public_key": public_key}
+
+@app.post("/revoke_vc")
+def revoke_vc():
+    did_identifier = request.get_json()["did_identifier"]
+
+    # Connect to the database
+    conn = sqlite3.connect("blockchain.db")
+    cursor = conn.cursor()
+
+    # Resolve the DID identifier
+    cursor.execute("DELETE FROM did_document WHERE did_identifier=?", (did_identifier,))
+
+    # Commit and close
+    conn.commit()
+    conn.close()
+
+    return {"a": 0}
 
 if __name__ == '__main__':
     create_db()

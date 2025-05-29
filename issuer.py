@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from flask import Flask, request
-import requests
+import requests, sqlite3
 
 import random, sys, json, base64
 
@@ -15,6 +15,13 @@ from cryptography.hazmat.primitives import hashes
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
+
+def create_db():
+    conn = sqlite3.connect("issuer.db")
+    with open('issuer.sql') as f:
+        conn.executescript(f.read())
+    conn.commit()
+    conn.close()
 
 # Arrays with 10 sample values each
 original_national_base_list = [
@@ -75,20 +82,20 @@ def gen_key_pair_holder():
 def register_holder():
     user_data = request.get_json()
 
-    #Generate key pair and PIN
+    # Generate key pair and PIN
     (private_pem_low_loa, 
      public_pem_low_loa, 
      private_pem_substantial_loa, 
      public_pem_substantial_loa, 
      holder_pin) = gen_key_pair_holder()
 
-    #Sends the key pair to the blockchain and gets the DID identifier
+    # Sends the key pair to the blockchain and gets the DID identifier
     r = requests.get("http://127.0.0.1:3173/register_did", 
                       json={"public_pem_low_loa": public_pem_low_loa, "public_pem_substantial_loa": public_pem_substantial_loa})
 
     did_identifier = r.json()["did_identifier"]
 
-    #Sends full data to the wallet
+    # Sends full data to the wallet
     original_national_base = random.choice(original_national_base_list)
     rank = random.choice(rank_list)
     division = random.choice(division_list)
@@ -198,10 +205,28 @@ def check_vc_valifity():
 
     return {"valid": "yes"}
 
+@app.post("/revoke_vc")
+def revoke_vc():
+    motive = request.get_json()["motive"]
+    vc_hash = base64.b64encode(bytes(request.get_json()["vc_hash"]))
+
+    # add the vc hash to the crl
+    conn = sqlite3.connect("issuer.db")
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT INTO crls (vc_hash, revocation_date, motive) VALUES (?, ?, ?)", (vc_hash, date.today(), motive))
+
+    # Commit and close
+    conn.commit()
+    conn.close()
+
+    return {"a": 0}
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f"Wrong arguments!\n\tUsage: {sys.argv[0]} <issuer id>")
         exit(1)
 
     issuer_id = sys.argv[1]
+    create_db()
     app.run(debug=True, port=1337)

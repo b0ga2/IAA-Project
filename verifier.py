@@ -1,5 +1,5 @@
+import requests, random, string, json
 from flask import Flask, request
-import requests, random, string
 
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives import hashes
@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 challenges = []
 
-# TODO: do revocation lists
+# TODO: do revocation lists and verify them
 
 @app.route("/auth_req", methods=["POST"])
 def auth_req():
@@ -20,7 +20,7 @@ def auth_req():
 
     public_key = r.json()["public_key"]
     challenge = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(64))
-    challenges.append((user_data["did_identifier"], challenge, public_key))
+    challenges.append([user_data["did_identifier"], challenge, public_key, 0])
 
     return {"challenge": challenge}
 
@@ -30,15 +30,30 @@ def validate_challenge():
     signature = bytes(request.get_json()["signature"])
     did_identifier = vc["vc_json"]["did_identifier"]
 
-    # check if the vc signature or date is invalid
-    r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})
-    if r.json()["valid"] == "no":
-        return {"valid": "no"}
-
-    for challenge in challenges:
+    challenge_index = -1
+    for i, challenge in enumerate(challenges):
         if did_identifier == challenge[0]:
             original_chall = challenge[1]
             original_holder_pub_key = challenge[2]
+            number_of_tries = challenge[3]
+            challenge_index = i
+
+    # revoke the card if the user misses the pin at least 3 times
+    challenges[challenge_index][3] += 1
+    if number_of_tries >= 2:
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(json.dumps(vc, sort_keys=True).encode('utf-8'))
+        vc_hash = [x for x in digest.finalize()]
+
+        challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8'), number_of_tries + 1])
+        requests.post("http://127.0.0.1:1337/revoke_vc", json={"vc_hash": vc_hash, "motive": "Entered the wrong pin too many times."})
+        requests.post("http://127.0.0.1:3173/revoke_vc", json={"did_identifier": vc["vc_json"]["did_identifier"]})
+        return {"valid": "no", "reason": "too many tries"}
+
+    # check if the vc signature or date is invalid
+    r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})
+    if r.json()["valid"] == "no":
+        return {"valid": "no", "reason": "Invalid challenge signature."}
 
     holder_pub_key = load_pem_public_key(original_holder_pub_key.encode("utf-8"))
 
@@ -63,7 +78,7 @@ def validate_challenge():
         print(f"Signature is invalid.")
         return {"valid": "no"}
 
-    challenges.remove((did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8')))
+    challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8'), number_of_tries + 1])
     return {"valid": "yes"}
 
 if __name__ == '__main__':

@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS crls (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    vc_hash TEXT NOT NULL,
+    revocation_date DATE NOT NULL,
+    motive TEXT NOT NULL
+);

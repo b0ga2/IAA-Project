@@ -14,9 +14,6 @@ def create_db():
 def register_vc():
     user_data = request.get_json()
 
-    #initial_date = user_data["initial_date"].date().isoformat()
-    #final_date = user_data["initial_date"].date().isoformat()
-
     # Connect to your SQLite database
     conn = sqlite3.connect("wallet.db")
     cursor = conn.cursor()
