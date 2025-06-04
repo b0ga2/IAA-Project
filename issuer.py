@@ -46,11 +46,11 @@ security_clearance_level_list = [
 ]
 
 def gen_key_pair_holder():
-    #generate low LoA key pair
+    # generate low LoA key pair
     private_key_low_loa = rsa.generate_private_key(public_exponent=65537,key_size=2048)
     public_key_low_loa = private_key_low_loa.public_key()
 
-    #serialize key pair
+    # serialize key pair
     private_pem_low_loa = private_key_low_loa.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
@@ -61,11 +61,11 @@ def gen_key_pair_holder():
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode("utf-8")
 
-    #generate substantial LoA key pair
+    # generate substantial LoA key pair
     private_key_substantial_loa = rsa.generate_private_key(public_exponent=65537,key_size=2048)
     public_key_substantial_loa = private_key_substantial_loa.public_key()
 
-    #serialize substantial LoA key pair with random 6 digit PIN
+    # serialize substantial LoA key pair with random 6 digit PIN
     holder_pin = f"{random.randint(0, 999999):06d}".encode("utf-8") 
     private_pem_substantial_loa = private_key_substantial_loa.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -171,14 +171,33 @@ def register_holder():
 
 @app.post("/check_vc_validity")
 def check_vc_valifity():
-    vc = request.get_json()["vc"]["vc_json"]
+    vc = request.get_json()["vc"]
 
     with open("issuer-public.pub", "rb") as f:
         issuer_pub_key = load_pem_public_key(f.read())
 
-    # Hash of the vc json
+    # Hash of the vc
     digest = hashes.Hash(hashes.SHA256())
     digest.update(json.dumps(vc, sort_keys=True).encode('utf-8'))
+    hashed_vc = digest.finalize()
+
+    # check if the vc is revoked
+    conn = sqlite3.connect("issuer.db")
+    cursor = conn.cursor()
+
+    revoked = cursor.execute("SELECT motive FROM crls WHERE vc_hash=?", (base64.b64encode(hashed_vc),)).fetchone()
+
+    # Commit and close
+    conn.commit()
+    conn.close()
+
+    if revoked != None:
+        print("VC is revoked.")
+        return {"valid": "no"}
+
+    # Hash of the vc json
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(json.dumps(vc["vc_json"], sort_keys=True).encode('utf-8'))
     hashed_vc = digest.finalize()
 
     # check the signature
@@ -193,14 +212,14 @@ def check_vc_valifity():
             Prehashed(hashes.SHA256())
         )
     except Exception as inst:
-        print(inst)
+        print("exception: ", inst)
         print(f"Signature is invalid.")
         return {"valid": "no"}
  
     # check the date validity
     today = date.today()
-    initial_date = datetime.strptime(vc["initial_date"], "%Y/%d/%m").date()
-    final_date = datetime.strptime(vc["final_date"], "%Y/%d/%m").date()
+    initial_date = datetime.strptime(vc["vc_json"]["initial_date"], "%Y/%d/%m").date()
+    final_date = datetime.strptime(vc["vc_json"]["final_date"], "%Y/%d/%m").date()
 
     if initial_date > today or final_date < today:
         return {"valid": "no"}

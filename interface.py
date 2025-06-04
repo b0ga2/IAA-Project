@@ -3,7 +3,7 @@ import requests, random
 
 app = Flask(__name__)
 
-loa = ["high"]
+loa = ["low", "substantial", "high"]
 
 original_national_base_list = [
     "NAT-001", "NAT-002", "NAT-003", "NAT-004", "NAT-005",
@@ -44,11 +44,13 @@ def auth_req():
             LoA = "substantial"
             high_acces_req_underway = True
             curr_high_access_req['try_count'] = 0
-            curr_high_access_req['group'] = original_national_base_list.index(vc["original_national_base"])
+            curr_high_access_req['group'] = original_national_base_list.index(vc["vc_json"]["original_national_base"])
     else:
         LoA = "substantial"
 
-    r = requests.post("http://127.0.0.1:3317/auth_req", json={"did_identifier": vc["did_identifier"], "loa": LoA})
+    print(LoA)
+
+    r = requests.post("http://127.0.0.1:3317/auth_req", json={"vc": vc, "loa": LoA})
 
     var = r.json()
     var.update({'loa': LoA})
@@ -63,7 +65,10 @@ def send_challenge_to_verifier():
 
     r = requests.post("http://127.0.0.1:3317/validate_challenge", json={"vc": vc, "signature": signature})
     if high_acces_req_underway:
-        if r.json()["valid"] == "yes" and group == curr_high_access_req['group']:
+        if r.json()["valid"] == "no":
+            return r.json() if "reason" in r.json() else {"valid": "no"}
+
+        if group == curr_high_access_req['group']:
             curr_high_access_req['try_count'] += 1
         else:
             high_acces_req_underway = False

@@ -15,8 +15,15 @@ challenges = []
 
 @app.route("/auth_req", methods=["POST"])
 def auth_req():
-    user_data = request.get_json()
-    r = requests.get("http://127.0.0.1:3173/resolve_did", json={"did_identifier": user_data["did_identifier"], "loa": user_data["loa"]})
+    vc = request.get_json()["vc"]
+    user_data = vc["vc_json"]
+
+    # check if the vc signature or date is invalid
+    r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})
+    if r.json()["valid"] == "no":
+        return {"valid": "no", "reason": "Invalid challenge signature."}
+
+    r = requests.get("http://127.0.0.1:3173/resolve_did", json={"did_identifier": user_data["did_identifier"], "loa": request.get_json()["loa"]})
 
     public_key = r.json()["public_key"]
     challenge = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(64))
@@ -77,7 +84,7 @@ def validate_challenge():
             Prehashed(hashes.SHA256())
         )
     except Exception as inst:
-        print(inst)
+        print("exception:", inst)
         print(f"Signature is invalid.")
         return {"valid": "no"}
 
