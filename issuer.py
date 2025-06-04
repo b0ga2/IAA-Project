@@ -3,6 +3,7 @@ from flask import Flask, request
 import requests, sqlite3
 
 import random, sys, json, base64
+from random import randrange
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
@@ -96,10 +97,11 @@ def register_holder():
     did_identifier = r.json()["did_identifier"]
 
     # Sends full data to the wallet
-    original_national_base = random.choice(original_national_base_list)
-    rank = random.choice(rank_list)
-    division = random.choice(division_list)
-    security_clearance_level = random.choice(security_clearance_level_list)
+    idx = randrange(len(original_national_base_list))
+    original_national_base = original_national_base_list[idx]
+    rank = rank_list[idx]
+    division = division_list[idx]
+    security_clearance_level = security_clearance_level_list[idx]
     holder_id = user_data["holder_id"]
     initial_date = datetime.now()
     final_date = (initial_date + timedelta(days=365)).strftime('%Y/%d/%m')

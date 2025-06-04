@@ -38,6 +38,9 @@ def validate_challenge():
             number_of_tries = challenge[3]
             challenge_index = i
 
+    if challenge_index == -1:
+        return {"valid": "no", "reason": "No corresponding challenge."}
+
     # revoke the card if the user misses the pin at least 3 times
     challenges[challenge_index][3] += 1
     if number_of_tries >= 2:
@@ -48,7 +51,7 @@ def validate_challenge():
         challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8'), number_of_tries + 1])
         requests.post("http://127.0.0.1:1337/revoke_vc", json={"vc_hash": vc_hash, "motive": "Entered the wrong pin too many times."})
         requests.post("http://127.0.0.1:3173/revoke_vc", json={"did_identifier": vc["vc_json"]["did_identifier"]})
-        return {"valid": "no", "reason": "too many tries"}
+        return {"valid": "no", "reason": "Too many tries."}
 
     # check if the vc signature or date is invalid
     r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})

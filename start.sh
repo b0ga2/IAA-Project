@@ -3,6 +3,9 @@
 # just to make sure that we are using the virtual environment
 source venv/bin/activate
 
+rm *.db
+rm *.json
+
 cat << EOF > /tmp/bootstrap_tabs.sh
 gnome-terminal --tab -t "Holder"
 gnome-terminal --tab -t "Blockchain" -- bash -c "python blockchain.py; exec bash"

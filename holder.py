@@ -28,7 +28,7 @@ if __name__ == '__main__':
     holder_vc = f"holder_{holder_id}.json"
 
     vc = get_vc(holder_vc, {'full_name': 'TÓS',"nationality":"Out of this World", "holder_id": holder_id, "health_code": "teste"})
-    r = requests.post("http://127.0.0.1:1733/auth_req", json={"did_identifier": vc["vc_json"]["did_identifier"]})
+    r = requests.post("http://127.0.0.1:1733/auth_req", json={"vc": vc["vc_json"]})
 
     challenge = r.json()["challenge"]
     LoA = r.json()["loa"]
@@ -76,5 +76,8 @@ if __name__ == '__main__':
         r = requests.post("http://127.0.0.1:1733/send_challenge_to_verifier", json={"vc": vc, "signature": signature})
         print(r.json())
 
-        if LoA == "low" or r.json()["valid"] == "yes" or ("reason" in r.json() and r.json()["reason"] == "too many tries"):
+        if "reason" in r.json() and (r.json()["reason"] == "No corresponding challenge." or r.json()["reason"] == "Invalid group"):
+            break
+
+        if LoA == "low" or r.json()["valid"] == "yes" or ("reason" in r.json() and r.json()["reason"] == "Too many tries"):
             break
