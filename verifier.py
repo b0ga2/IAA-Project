@@ -11,8 +11,6 @@ app = Flask(__name__)
 
 challenges = []
 
-# TODO: do revocation lists and verify them
-
 @app.route("/auth_req", methods=["POST"])
 def auth_req():
     vc = request.get_json()["vc"]

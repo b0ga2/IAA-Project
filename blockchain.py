@@ -1,8 +1,6 @@
 import requests, sqlite3, random, string
 from flask import Flask, request
 
-# TODO: Correct the db in the blockchain when a new user is added
-
 app = Flask(__name__)
 
 def generate_random_did(length=64):
