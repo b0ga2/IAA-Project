@@ -25,11 +25,11 @@ def auth_req():
 
     public_key = r.json()["public_key"]
     challenge = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(64))
-    challenges.append([user_data["did_identifier"], challenge, public_key, 0])
+    challenges.append([user_data["did_identifier"], challenge, public_key])
 
     return {"challenge": challenge}
 
-@app.route("/validate_challenge", methods=["POST"]) 
+@app.route("/validate_challenge", methods=["POST"])
 def validate_challenge():
     vc = request.get_json()["vc"]
     signature = bytes(request.get_json()["signature"])
@@ -40,23 +40,10 @@ def validate_challenge():
         if did_identifier == challenge[0]:
             original_chall = challenge[1]
             original_holder_pub_key = challenge[2]
-            number_of_tries = challenge[3]
             challenge_index = i
 
     if challenge_index == -1:
         return {"valid": "no", "reason": "No corresponding challenge."}
-
-    # revoke the card if the user misses the pin at least 3 times
-    challenges[challenge_index][3] += 1
-    if number_of_tries >= 2:
-        digest = hashes.Hash(hashes.SHA256())
-        digest.update(json.dumps(vc, sort_keys=True).encode('utf-8'))
-        vc_hash = [x for x in digest.finalize()]
-
-        challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8'), number_of_tries + 1])
-        requests.post("http://127.0.0.1:1337/revoke_vc", json={"vc_hash": vc_hash, "motive": "Entered the wrong pin too many times."})
-        requests.post("http://127.0.0.1:3173/revoke_vc", json={"did_identifier": vc["vc_json"]["did_identifier"]})
-        return {"valid": "no", "reason": "Too many tries."}
 
     # check if the vc signature or date is invalid
     r = requests.post("http://127.0.0.1:1337/check_vc_validity", json={"vc": vc})
@@ -86,7 +73,7 @@ def validate_challenge():
         print(f"Signature is invalid.")
         return {"valid": "no"}
 
-    challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8'), number_of_tries + 1])
+    challenges.remove([did_identifier, original_chall, original_holder_pub_key.encode('utf-8').decode('utf-8')])
     return {"valid": "yes"}
 
 if __name__ == '__main__':

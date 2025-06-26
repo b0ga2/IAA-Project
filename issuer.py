@@ -226,23 +226,6 @@ def check_vc_valifity():
 
     return {"valid": "yes"}
 
-@app.post("/revoke_vc")
-def revoke_vc():
-    motive = request.get_json()["motive"]
-    vc_hash = base64.b64encode(bytes(request.get_json()["vc_hash"]))
-
-    # add the vc hash to the crl
-    conn = sqlite3.connect("issuer.db")
-    cursor = conn.cursor()
-
-    cursor.execute("INSERT INTO crls (vc_hash, revocation_date, motive) VALUES (?, ?, ?)", (vc_hash, date.today(), motive))
-
-    # Commit and close
-    conn.commit()
-    conn.close()
-
-    return {"a": 0}
-
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print(f"Wrong arguments!\n\tUsage: {sys.argv[0]} <issuer id>")
