@@ -2,5 +2,5 @@ __pycache__/
 *.pem
 *.pub
 *.db
-*.json
+holder_*.json
 venv/

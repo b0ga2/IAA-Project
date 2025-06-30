@@ -1,0 +1,87 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Verifiable Credential Schema",
+    "type": "object",
+    "properties": {
+        "holder_pin": {
+            "type": "string"
+        },
+        "signature": {
+            "type": "string"
+        },
+        "vc_json": {
+            "type": "object",
+            "properties": {
+                "did_identifier": {
+                    "type": "string"
+                },
+                "division": {
+                    "type": "string"
+                },
+                "final_date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}/\\d{2}/\\d{2}$"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "health_code": {
+                    "type": "string"
+                },
+                "initial_date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}/\\d{2}/\\d{2}$"
+                },
+                "issuer_id": {
+                    "type": "string"
+                },
+                "nationality": {
+                    "type": "string"
+                },
+                "original_national_base": {
+                    "type": "string"
+                },
+                "private_pem_low_loa": {
+                    "type": "string"
+                },
+                "private_pem_substantial_loa": {
+                    "type": "string"
+                },
+                "public_pem_low_loa": {
+                    "type": "string"
+                },
+                "public_pem_substantial_loa": {
+                    "type": "string"
+                },
+                "rank": {
+                    "type": "string"
+                },
+                "security_clearance_level": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "did_identifier",
+                "division",
+                "final_date",
+                "full_name",
+                "health_code",
+                "initial_date",
+                "issuer_id",
+                "nationality",
+                "original_national_base",
+                "private_pem_low_loa",
+                "private_pem_substantial_loa",
+                "public_pem_low_loa",
+                "public_pem_substantial_loa",
+                "rank",
+                "security_clearance_level"
+            ]
+        }
+    },
+    "required": [
+        "holder_pin",
+        "signature",
+        "vc_json"
+    ]
+}
